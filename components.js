@@ -1,14 +1,14 @@
 let myChart = null;
 
-// Helper to build the API URL
 function createQuery(obj) {
-    return Object.entries(obj)
-        .map(([key, value]) => `${key}=${value}`)
-        .join('&');
+    let query_string = "";
+    for (let [key, value] of Object.entries(obj)) {
+        query_string += `${key}=${value}&`;
+    }
+    return query_string.substring(0, query_string.length - 1);
 }
 
-// Fetch data from Open-Meteo
-async function getWeatherData() {
+async function getWeatherData(){
     const weatherParams = {
         latitude: 49.2761,
         longitude: -123.1016,
@@ -19,75 +19,57 @@ async function getWeatherData() {
     };
     
     const weatherUrl = "https://api.open-meteo.com/v1/forecast?" + createQuery(weatherParams);
-    const response = await fetch(weatherUrl);
-    if (!response.ok) throw new Error("Network response was not ok");
-    return await response.json();
+    const returnedData = await fetch(weatherUrl);
+    const jsonData = await returnedData.json();
+    return jsonData;
 }
 
-// Update the UI text
-function setWeatherStatus(temperature, rain) {
-    const tempStatus = temperature >= 25 ? "It's quite warm!" : "It's a bit chilly.";
-    const rainStatus = rain > 0 ? "Bring an umbrella, it's raining." : "No rain in sight.";
-    document.getElementById("weatherText").innerHTML = `${temperature}°C. ${tempStatus} ${rainStatus}`;
+function setWeatherText(temperature, rain) {
+    let temperatureText = temperature >= 30 ? "It is hot outside." : "It is cool outside.";
+    let rainText = rain > 0 ? "It is raining." : "It is not raining.";
+    document.getElementById("weatherText").innerHTML = temperatureText + " " + rainText;
 }
 
-// Main function triggered by button
 async function getWeather() {
-    const loader = document.getElementById("loader");
-    const button = document.getElementById("getWeatherButton");
-    const weatherText = document.getElementById("weatherText");
+    const weatherData = await getWeatherData();
+    
+    const currentTemperature = weatherData.current.temperature_2m;
+    const currentRain = weatherData.current.rain;
+    setWeatherText(currentTemperature, currentRain);
+    
+    const temps = weatherData.hourly.temperature_2m;
+    const tempLabels = weatherData.hourly.time;
+    let betterLabels = tempLabels.map(label => label.substring(11));
 
-    // Start Loading State
-    loader.style.display = "block";
-    button.style.display = "none";
-    weatherText.innerText = "Syncing with satellites...";
-
-    try {
-        const data = await getWeatherData();
-        
-        // Update Text
-        setWeatherStatus(data.current.temperature_2m, data.current.rain);
-        
-        // Prepare Graph Data
-        const temps = data.hourly.temperature_2m;
-        const labels = data.hourly.time.map(t => t.substring(11));
-
-        // Clear old chart if it exists
-        if (myChart) { myChart.destroy(); }
-        
-        const ctx = document.getElementById("temperatureChart").getContext("2d");
-        myChart = new Chart(ctx, {
-            type: "line",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "Temp (°C)",
+    // If a chart already exists, destroy it before creating a new one
+    if (myChart) {
+        myChart.destroy();
+    }
+    
+    const ctx = document.getElementById("temperatureChart").getContext("2d");
+    myChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels : betterLabels,
+            datasets: [
+                {
                     data: temps,
+                    label: "Temperature (°C)",
                     borderColor: "white",
                     backgroundColor: "rgba(255, 255, 255, 0.2)",
                     fill: true,
-                    tension: 0.4, // This gives the "liquid" curved line look
-                    pointBackgroundColor: "white"
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { labels: { color: 'white', font: { size: 14 } } }
-                },
-                scales: {
-                    x: { ticks: { color: 'white' }, grid: { display: false } },
-                    y: { ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                    tension: 0.4
                 }
+            ]
+        },
+        options : {
+            plugins: {
+                legend: { labels: { color: 'white' } }
+            },
+            scales: {
+                x: { ticks: { color: 'white' }, grid: { display: false } },
+                y: { ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } }
             }
-        });
-
-    } catch (error) {
-        console.error(error);
-        weatherText.innerText = "Failed to load weather. Check connection.";
-    } finally {
-        // End Loading State
-        loader.style.display = "none";
-        button.style.display = "inline-block";
-    }
+        }
+    });
 }
