@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liquid Glass Weather</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="glass-container">
+        <h1>Atmosphere</h1>
+        
+        <div id="loader" class="glass-spinner" style="display: none;"></div>
+        
+        <button id="getWeatherButton" onclick="getWeather()">Get Weather</button>
+        
+        <h2 id="weatherText">Click to sync with the sky</h2>
+        
+        <div class="chart-div">
+            <canvas id="temperatureChart"></canvas>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
